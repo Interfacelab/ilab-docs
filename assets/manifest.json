@@ -1,0 +1,23 @@
+{
+  "dependencies": {
+    "docs.js": {
+      "files": [
+        "js/docs.js"
+      ],
+      "main": true
+    },
+    "docs.css": {
+      "files": [
+        "css/docs.scss"
+      ],
+      "main": true
+    }
+  },
+  "paths": {
+    "source": "",
+    "dist": "../public/"
+  },
+  "config": {
+    "devUrl": "http://cms.xandr.ilab/wp/wp-admin/admin.php?page=ilab-docs-menu&doc-page=index.md"
+  }
+}

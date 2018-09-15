@@ -1,0 +1,15 @@
+{
+    "name": "ilab/ilab-docs",
+    "description": "Adds markdown documentation for your theme to the WordPress admin.",
+    "type": "wordpress-plugin",
+    "license": "LGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Jon Gilkison",
+            "email": "jon@interfacelab.com"
+        }
+    ],
+    "require": {
+        "michelf/php-markdown": "^1.8"
+    }
+}
