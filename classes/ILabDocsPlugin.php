@@ -7,9 +7,11 @@ class ILabDocsPlugin {
     private $config = [];
 
     public function __construct() {
-        $themeRoot = get_template_directory();
-        $this->docsDirectory = $themeRoot.'/docs/';
+        $this->docsDirectory = get_template_directory().'/docs/';
+        $this->docsDirectory = apply_filters('ilab-docs-directory', $this->docsDirectory);
+
         $this->docsURL = get_template_directory_uri().'/docs/';
+        $this->docsURL = apply_filters('ilab-docs-url', $this->docsURL);
 
         // If no docs directory, bail
         if (!file_exists($this->docsDirectory)) {

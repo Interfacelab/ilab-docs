@@ -28,5 +28,7 @@ if (is_admin()) {
     define('ILAB_DOCS_PUB_CSS_URL',$plug_url.'public/css');
     define('ILAB_DOCS_PUB_JS_URL',$plug_url.'public/js');
 
-    new ILabDocsPlugin();
+    add_action('plugins_loaded', function(){
+        new ILabDocsPlugin();
+    });
 }
