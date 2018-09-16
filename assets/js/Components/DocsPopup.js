@@ -91,6 +91,8 @@ export default class DocsPopup {
                 callback(this.helpContainer);
             }
 
+            this.hijackSearch();
+
             this.helpContainer.appendChild(this.closeButton);
         }.bind(this));
     }
@@ -119,6 +121,34 @@ export default class DocsPopup {
                     return false;
                 }.bind(this));
             }
+        }.bind(this));
+    }
+
+    hijackSearch() {
+        var searchContainer = document.querySelector('.ilab-docs-search');
+        var form = searchContainer.querySelector('form');
+        form.addEventListener('submit', function(e){
+           e.preventDefault();
+           return false;
+        });
+
+        var searchInput = form.querySelector('input[type=search]');
+
+        var button = searchContainer.querySelector('input[type=submit]');
+        button.addEventListener('click', function(e){
+           e.preventDefault();
+
+            jQuery.post(ajaxurl, { "action": "ilab_render_doc_page", "search-text": searchInput.value, "doc-page": "index" }, function(response) {
+                console.log(response);
+                this.helpContainer.innerHTML = response.html;
+                this.hijackLinks('a', this.helpContainer);
+                this.hijackSearch();
+
+                this.helpContainer.appendChild(this.closeButton);
+            }.bind(this));
+
+
+           return false;
         }.bind(this));
     }
 }

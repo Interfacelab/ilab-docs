@@ -6,5 +6,7 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
+    'TeamTNT\\TNTSearch\\' => array($vendorDir . '/teamtnt/tntsearch/src'),
     'Michelf\\' => array($vendorDir . '/michelf/php-markdown/Michelf'),
+    'ILAB\\Docs\\' => array($baseDir . '/classes'),
 );

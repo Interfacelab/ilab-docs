@@ -19,9 +19,13 @@ Author URI: http://interfacelab.io
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // **********************************************************************
 
+define('ILAB_DOCS_DIR',dirname(__FILE__));
+define('ILAB_DOCS_VENDOR_DIR',ILAB_DOCS_DIR.'/vendor');
 
-require_once('vendor/autoload.php');
-require_once('classes/ILabDocsPlugin.php');
+// Composer
+if (file_exists(ILAB_DOCS_VENDOR_DIR.'/autoload.php')) {
+    require_once(ILAB_DOCS_VENDOR_DIR.'/autoload.php');
+}
 
 if (is_admin()) {
     $plug_url = plugin_dir_url( __FILE__ );
@@ -29,6 +33,11 @@ if (is_admin()) {
     define('ILAB_DOCS_PUB_JS_URL',$plug_url.'public/js');
 
     add_action('plugins_loaded', function(){
-        new ILabDocsPlugin();
+        new \ILAB\Docs\Plugin\DocsPlugin();
     });
 }
+
+if ( defined( 'WP_CLI' ) && \WP_CLI ) {
+    \ILAB\Docs\CLI\Search\SearchCommands::Register();
+}
+

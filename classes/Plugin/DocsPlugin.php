@@ -1,11 +1,30 @@
 <?php
+// Copyright (c) 2016 Interfacelab LLC. All rights reserved.
+//
+// Released under the GPLv3 license
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
+// **********************************************************************
+// This program is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// **********************************************************************
 
-class ILabDocsPlugin {
+namespace ILAB\Docs\Plugin;
+
+use TeamTNT\TNTSearch\TNTSearch;
+
+if (!defined('ABSPATH')) { header('Location: /'); die; }
+
+class DocsPlugin {
     private $docsURL;
     private $docsDirectory;
     private $currentPage;
     private $currentPagePath;
     private $config = [];
+
+    private $canSearch;
+    private $searchIndex;
 
     public function __construct() {
         $this->docsDirectory = get_template_directory().'/docs/';
@@ -13,6 +32,9 @@ class ILabDocsPlugin {
 
         $this->docsURL = get_template_directory_uri().'/docs/';
         $this->docsURL = apply_filters('ilab-docs-url', $this->docsURL);
+
+        $this->searchIndex = $this->docsDirectory.'docs.index';
+        $this->canSearch = (file_exists($this->searchIndex) && extension_loaded('sqlite3'));
 
         // If no docs directory, bail
         if (!file_exists($this->docsDirectory)) {
@@ -120,6 +142,30 @@ class ILabDocsPlugin {
         return $result;
     }
 
+    public function renderHeader() {
+        $searchText = (isset($_POST['search-text'])) ? $_POST['search-text'] : null;
+
+        $result = "<div class='ilab-docs-header".(($this->canSearch) ? ' ilab-docs-has-search' : '')."'>";
+        if (isset($this->config['logo'])) {
+            $title = isset($this->config['title']) ? $this->config['title'] : 'Documentation';
+            $logoSrc = get_template_directory_uri().'/'.$this->config['logo']['src'];
+            $logoWidth = $this->config['logo']['width'];
+            $logoHeight = $this->config['logo']['height'];
+
+            $result .= "<img src='$logoSrc' width='$logoWidth' height='$logoHeight'><span>$title</span>";
+        } else {
+            $result .= "";
+        }
+
+        if ($this->canSearch) {
+            $result .= "<div class='ilab-docs-search'><form method='POST'><input type='hidden' action='docs-search'><input type='search' class='newtag form-input-tip ui-autocomplete-input' name='search-text' ".(($searchText) ? " value='$searchText'" : "")." placeholder='Search ...'><input type='submit' value='Search' class='button-primary'></form></div>";
+        }
+
+        $result .= "</div>";
+
+        return $result;
+    }
+
     public function renderPage() {
         $result = '';
 
@@ -167,16 +213,7 @@ class ILabDocsPlugin {
         // Convert to HTML
         $html = $parser->transform($text);
 
-        if (isset($this->config['logo'])) {
-            $title = isset($this->config['title']) ? $this->config['title'] : 'Documentation';
-            $logoSrc = get_template_directory_uri().'/'.$this->config['logo']['src'];
-            $logoWidth = $this->config['logo']['width'];
-            $logoHeight = $this->config['logo']['height'];
-
-            $result .= "<div class='ilab-docs-header'><img src='$logoSrc' width='$logoWidth' height='$logoHeight'><span>$title</span></div>";
-
-        }
-
+        $result .= $this->renderHeader();
         $result .= $this->renderBreadcrumbs();
 
 
@@ -185,12 +222,74 @@ class ILabDocsPlugin {
         return $result;
     }
 
+    private function getTocEntryForFile($entries, $fileName) {
+        foreach($entries as $entry) {
+            if ($entry['src'] == $fileName) {
+                return $entry;
+            }
+
+            if (isset($entry['children'])) {
+                $result = $this->getTocEntryForFile($entry['children'], $fileName);
+                if ($result) {
+                    return $result;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public function renderSearchResults() {
+        $searchText = $_POST['search-text'];
+
+        $tnt = new TNTSearch();
+        $tnt->loadConfig([
+            "driver"    => 'filesystem',
+            "location"  => $this->docsDirectory,
+            "extension" => "md",
+            'storage'   => $this->docsDirectory
+        ]);
+
+        $tnt->selectIndex('docs.index');
+        $searchResults = $tnt->search($searchText);
+
+        $entries = [];
+        foreach($searchResults as $searchResult) {
+            $file = str_replace('.md', '', str_replace($this->docsDirectory, '', $searchResult['path']));
+            $entry = $this->getTocEntryForFile($this->config['toc'], $file);
+            if ($entry) {
+                $entries[] = $entry;
+            }
+        }
+
+        $html = "<h2>Searched for '$searchText' and found ".count($entries)." results.</h2>\n";
+        $html .= '<ul class="search-results">';
+        foreach($entries as $entry) {
+            $entryURL = admin_url('admin.php?page=ilab-docs-menu&doc-page='.$entry['src']);
+            $html .= "<li><a href='$entryURL'>{$entry['title']}</li>";
+        }
+        $html .= '</ul>';
+
+        $result = $this->renderHeader();
+        $result .= "<div class='ilab-docs-container'><div class='ilab-docs-body'>$html</div></div>";
+
+        return $result;
+    }
+
     public function renderMenuPage() {
-        echo $this->renderPage();
+        if ($this->canSearch && isset($_POST['search-text'])) {
+            echo $this->renderSearchResults();
+        } else {
+            echo $this->renderPage();
+        }
     }
 
     public function displayAjaxPage() {
-        $page = $this->renderPage();
+        if ($this->canSearch && isset($_POST['search-text'])) {
+            $page = $this->renderSearchResults();
+        } else {
+            $page = $this->renderPage();
+        }
 
         status_header( 200 );
         header( 'Content-type: application/json; charset=UTF-8' );
@@ -203,7 +302,7 @@ class ILabDocsPlugin {
 
     //region Menu related
 
-    private function buildAdminBarMenuEntries(WP_Admin_Bar $wp_admin_bar, $parentID, $entries) {
+    private function buildAdminBarMenuEntries(\WP_Admin_Bar $wp_admin_bar, $parentID, $entries) {
         foreach($entries as $entry) {
             $entryNodeId = str_replace('/','-', 'ilab-docs-node-'.$entry['src']);
             $wp_admin_bar->add_node([
@@ -222,7 +321,7 @@ class ILabDocsPlugin {
         }
     }
 
-    public function buildAdminBarMenu(WP_Admin_Bar $wp_admin_bar) {
+    public function buildAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
         if (!isset($this->config['toc'])) {
             return;
         }

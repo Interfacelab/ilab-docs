@@ -6,17 +6,37 @@ namespace Composer\Autoload;
 
 class ComposerStaticInit71ca0f130a3d342bd0f27e34d33571da
 {
+    public static $files = array (
+        '290dd4ba42f11019134caca05dbefe3f' => __DIR__ . '/..' . '/teamtnt/tntsearch/helper/helpers.php',
+    );
+
     public static $prefixLengthsPsr4 = array (
+        'T' => 
+        array (
+            'TeamTNT\\TNTSearch\\' => 18,
+        ),
         'M' => 
         array (
             'Michelf\\' => 8,
         ),
+        'I' => 
+        array (
+            'ILAB\\Docs\\' => 10,
+        ),
     );
 
     public static $prefixDirsPsr4 = array (
+        'TeamTNT\\TNTSearch\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/teamtnt/tntsearch/src',
+        ),
         'Michelf\\' => 
         array (
             0 => __DIR__ . '/..' . '/michelf/php-markdown/Michelf',
+        ),
+        'ILAB\\Docs\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/classes',
         ),
     );
 
