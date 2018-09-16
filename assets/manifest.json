@@ -2,6 +2,7 @@
   "dependencies": {
     "docs.js": {
       "files": [
+        "node_modules/babel-polyfill/dist/polyfill.js",
         "js/docs.js"
       ],
       "main": true
@@ -18,6 +19,6 @@
     "dist": "../public/"
   },
   "config": {
-    "devUrl": "http://cms.xandr.ilab/wp/wp-admin/admin.php?page=ilab-docs-menu&doc-page=index.md"
+    "devUrl": "http://cms.xandr.ilab/wp/wp-admin/"
   }
 }

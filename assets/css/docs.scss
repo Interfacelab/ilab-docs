@@ -1,7 +1,7 @@
 @import 'functions';
 
-.docs-header {
-  background-color: rgba(255, 255, 255, 0.8);
+.ilab-docs-header {
+  //background-color: rgba(255, 255, 255, 0.8);
   margin-left: -20px;
   padding: 20px 40px;
   display: flex;
@@ -14,16 +14,49 @@
   }
 }
 
-.docs-container {
+.ilab-docs-breadcrumbs {
+  margin-left: -20px;
+  padding: 12px 40px;
+  background-color: rgba(0, 0, 0, 0.0625);
+
+  ul {
+    margin: 0px;
+    padding: 0px;
+    display: flex;
+
+    li {
+      padding: 0px;
+      margin: 0;
+      margin-right: 10px;
+      &:after {
+        padding-left: 10px;
+        content: "»";
+      }
+
+      &:last-of-type {
+        margin-right: 0px;
+        &:after {
+          content: '';
+        }
+      }
+    }
+  }
+}
+
+.ilab-docs-container {
   display: flex;
-  justify-content: center;
-  padding-top: 10px;
-  margin-right: 20px;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 20px;
 
 
-  .docs-body {
+  .ilab-docs-body {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.66);
     width: 100%;
     max-width: 980px;
+    padding: 20px 40px;
+    margin-right: 20px;
 
     h1{
       font-size: 2em;
@@ -90,5 +123,88 @@
 
   ol {
     list-style: inside decimal;
+  }
+}
+
+.ilab-docs-modal {
+  z-index: 1000000;
+  position: fixed;
+  background: rgba(0,0,0,0.75);
+  left:0px; top:0px; right:0px; bottom:0px;
+  transition: opacity 0.25s linear;
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+
+  &.ilab-docs-modal-hidden {
+    opacity: 0;
+  }
+
+  .ilab-docs-ajax-container {
+    position: relative;
+    width: 100%;
+    max-width: 980px;
+    background: rgb(255, 255, 255);
+    display: flex;
+    flex-direction: column;
+
+    @media only screen and (max-width: 980px) {
+      margin: 0 20px;
+    }
+
+    .ilab-docs-header {
+      margin-left: 0px;
+      margin-right: 0px;
+    }
+
+    .ilab-docs-breadcrumbs {
+      margin-left: 0px;
+    }
+
+    .ilab-docs-container {
+      display: block;
+      padding: 0;
+      overflow: auto;
+    }
+
+    .ilab-docs-body {
+      flex: auto;
+      background: rgb(255, 255, 255);
+      width: auto;
+      max-width: none;
+      padding: 0px 20px;
+      margin: 0;
+    }
+
+    .ilab-docs-modal-close {
+      position: absolute;
+      left: 0px; top: 0px;
+      width: 24px; height: 24px;
+      border-radius: 24px;
+      transform: translate(-50%, -50%);
+      font-size: 0;
+      background-color: black;
+      border: 2px solid white;
+
+      &:before, &:after{
+        content:'';
+        position:absolute;
+        top:11px;
+        width:12px;
+        height:2px;
+        background-color:white;
+        border-radius:2px;
+      }
+
+      &:before{
+        transform:rotate(45deg);
+        left:6px;
+      }
+
+      &:after{
+        transform:rotate(-45deg);
+        right:6px;
+      }
+    }
   }
 }
