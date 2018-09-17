@@ -12,6 +12,7 @@
 
 namespace ILAB\Docs\Plugin;
 
+use ILAB\Docs\Markdown\DocsMarkdownExtra;
 use TeamTNT\TNTSearch\TNTSearch;
 
 if (!defined('ABSPATH')) { header('Location: /'); die; }
@@ -67,6 +68,10 @@ class DocsPlugin {
         add_action('admin_enqueue_scripts', function(){
             wp_enqueue_script('ilab-docs-js', ILAB_DOCS_PUB_JS_URL.'/docs.js');
             wp_enqueue_style('ilab-docs-css', ILAB_DOCS_PUB_CSS_URL . '/docs.css' );
+
+            if (file_exists($this->docsDirectory.'docs.css')) {
+                wp_enqueue_style('ilab-custom-docs-css', $this->docsURL . '/docs.css' );
+            }
         });
 
         add_action('wp_ajax_ilab_render_doc_page', [$this,'displayAjaxPage']);
@@ -74,6 +79,47 @@ class DocsPlugin {
     }
 
     //region Rendering
+
+    private function getChildrenEntriesFor($page, $entries) {
+        foreach($entries as $entry) {
+            if ($entry['src'] == $page) {
+                if (isset($entry['children'])) {
+                    return $entry['children'];
+                } else {
+                    return [];
+                }
+            }
+
+            if (isset($entry['children'])) {
+                $res = $this->getChildrenEntriesFor($page, $entry['children']);
+                if (is_array($res)) {
+                    return $res;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function convertEntriesToHTML($entries) {
+        $html = '';
+        foreach($entries as $entry) {
+            if ($entry['src'] == 'index') {
+                continue;
+            }
+
+            $anchor = admin_url('admin.php?page=ilab-docs-menu&doc-page='.$entry['src']);
+            $html .= "<li><a href='$anchor'>{$entry['title']}</a>";
+            if (isset($entry['children'])) {
+                $html .= '<ul>';
+                $html .= $this->convertEntriesToHTML($entry['children']);
+                $html .= '</ul>';
+            }
+            $html .= "</li>";
+        }
+
+        return $html;
+    }
 
     private function searchForCurrentPage($entries, &$results) {
         foreach($entries as $entry) {
@@ -171,7 +217,7 @@ class DocsPlugin {
 
         $text = file_get_contents($this->currentPagePath);
 
-        $parser = new \Michelf\MarkdownExtra();
+        $parser = new DocsMarkdownExtra();
         $parser->url_filter_func = function($url) {
             // other doc links
             if (preg_match("/.*\.md/", $url)) {
@@ -203,10 +249,35 @@ class DocsPlugin {
 
         // Process embeds
         $embeds = [];
-        if (preg_match_all("/@\(([^)]*)\)/", $text, $embeds)) {
+        if (preg_match_all("/\@\s*\[[^]]*\]\s*\(([^)]*)\)/m", $text, $embeds)) {
             for($i = 0; $i < count($embeds[1]); $i++) {
                 $embedCode = wp_oembed_get($embeds[1][$i]);
-                $text = str_replace($embeds[0][$i], "<div class='embed-container'>$embedCode</div>", $text);
+                $isVideo = preg_match ("/\b(?:vimeo\.com|youtube\.com|youtu\.be|dailymotion\.com)\b/i", $embeds[1][$i]);
+                $text = str_replace($embeds[0][$i], "<div class='embed-container".(($isVideo) ? ' embed-video':'')."'>$embedCode</div>", $text);
+            }
+        }
+
+        // Process toc
+        $tocs = [];
+        if (preg_match_all("/@toc\(([^)]*)\)/m", $text, $tocs)) {
+            for($i = 0; $i < count($tocs[1]); $i++) {
+                $tocPage = $tocs[1][$i];
+                if (empty($tocPage)) {
+                    $tocPage = $this->currentPage;
+                }
+
+                if ($tocPage == 'index') {
+                    $entries = $this->config['toc'];
+                } else {
+                    $entries = $this->getChildrenEntriesFor($tocPage, $this->config['toc']);
+                }
+
+                if (!empty($entries) && is_array($entries) && (count($entries) > 0)) {
+                    $tocHTML = '<ul class="toc">';
+                    $tocHTML .= $this->convertEntriesToHTML($entries);
+                    $tocHTML .='</ul>';
+                    $text = str_replace($tocs[0][$i], $tocHTML, $text);
+                }
             }
         }
 

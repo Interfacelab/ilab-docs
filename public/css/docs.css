@@ -77,14 +77,14 @@
     .ilab-docs-container .ilab-docs-body h2 {
       font-size: 1.66em; }
     .ilab-docs-container .ilab-docs-body h3 {
-      font-size: 1.5em; }
-    .ilab-docs-container .ilab-docs-body h4 {
       font-size: 1.33em; }
+    .ilab-docs-container .ilab-docs-body h4 {
+      font-size: 1.25em; }
     .ilab-docs-container .ilab-docs-body h5 {
       font-size: 1em; }
     .ilab-docs-container .ilab-docs-body h6 {
       font-size: 1em; }
-    .ilab-docs-container .ilab-docs-body img {
+    .ilab-docs-container .ilab-docs-body > img, .ilab-docs-container .ilab-docs-body > p > img {
       display: block;
       margin-left: auto;
       margin-right: auto;
@@ -92,18 +92,19 @@
       width: 100%;
       height: auto; }
     .ilab-docs-container .ilab-docs-body .embed-container {
-      margin: 1em 0;
-      position: relative;
-      padding-bottom: 56.25%;
-      height: 0;
-      overflow: hidden;
-      max-width: 100%; }
-      .ilab-docs-container .ilab-docs-body .embed-container iframe {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%; }
+      position: relative; }
+      .ilab-docs-container .ilab-docs-body .embed-container.embed-video {
+        margin: 1em 0;
+        padding-bottom: 56.25%;
+        height: 0;
+        overflow: hidden;
+        max-width: 100%; }
+        .ilab-docs-container .ilab-docs-body .embed-container.embed-video iframe {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%; }
     .ilab-docs-container .ilab-docs-body pre {
       padding: 1em 0.5em;
       background-color: rgba(0, 0, 0, 0.07); }
@@ -118,6 +119,18 @@
       padding: 5px 0px 0px 0px; }
   .ilab-docs-container ol {
     list-style: inside decimal; }
+  .ilab-docs-container table {
+    width: 100%; }
+    .ilab-docs-container table thead {
+      background-color: rgba(0, 0, 0, 0.0625); }
+      .ilab-docs-container table thead th {
+        text-align: left;
+        padding: 10px 10px; }
+    .ilab-docs-container table tbody td {
+      padding: 10px 10px; }
+      .ilab-docs-container table tbody td img {
+        width: auto;
+        height: auto; }
 
 .ilab-docs-modal {
   z-index: 1000000;

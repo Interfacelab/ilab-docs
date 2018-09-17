@@ -82,11 +82,11 @@
     }
 
     h3{
-      font-size: 1.5em;
+      font-size: 1.33em;
     }
 
     h4{
-      font-size: 1.33em;
+      font-size: 1.25em;
     }
 
     h5{
@@ -97,7 +97,7 @@
       font-size: 1em;
     }
 
-    img {
+    & > img, & > p > img {
       display: block;
       margin-left: auto;
       margin-right: auto;
@@ -107,12 +107,15 @@
     }
 
     .embed-container {
-      margin: 1em 0;
       position: relative;
-      padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;
 
-      iframe {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      &.embed-video {
+        margin: 1em 0;
+        padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;
+
+        iframe {
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
       }
     }
 
@@ -138,6 +141,27 @@
 
   ol {
     list-style: inside decimal;
+  }
+
+  table {
+    width: 100%;
+    thead {
+      background-color: rgba(0,0,0,0.0625);
+      th {
+        text-align: left;
+        padding: 10px 10px;
+      }
+    }
+
+    tbody {
+      td {
+        padding: 10px 10px;
+        img {
+          width: auto;
+          height: auto;
+        }
+      }
+    }
   }
 }
 
