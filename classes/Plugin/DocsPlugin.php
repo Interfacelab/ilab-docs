@@ -135,7 +135,7 @@ class DocsPlugin {
         add_action('wp_ajax_ilab_render_doc_page', [$this,'displayAjaxPage']);
     }
 
-    //region Rendering
+    //region TOC
 
     /**
      * Gets child TOC entries for the current page
@@ -163,31 +163,6 @@ class DocsPlugin {
         }
 
         return null;
-    }
-
-    /**
-     * Converts TOC entries to HTML
-     * @param $entries
-     * @return string
-     */
-    private function convertEntriesToHTML($entries) {
-        $html = '';
-        foreach($entries as $entry) {
-            if ($entry['src'] == 'index') {
-                continue;
-            }
-
-            $anchor = admin_url('admin.php?page=ilab-docs-'.$this->currentDocs.'&doc-page='.$entry['src']);
-            $html .= "<li><a href='$anchor'>{$entry['title']}</a>";
-            if (isset($entry['children'])) {
-                $html .= '<ul>';
-                $html .= $this->convertEntriesToHTML($entry['children']);
-                $html .= '</ul>';
-            }
-            $html .= "</li>";
-        }
-
-        return $html;
     }
 
     /**
@@ -250,11 +225,64 @@ class DocsPlugin {
     }
 
     /**
+     * Returns the TOC entry for the given filename
+     *
+     * @param $entries
+     * @param $fileName
+     * @return bool
+     */
+    private function getTocEntryForFile($entries, $fileName) {
+        foreach($entries as $entry) {
+            if ($entry['src'] == $fileName) {
+                return $entry;
+            }
+
+            if (isset($entry['children'])) {
+                $result = $this->getTocEntryForFile($entry['children'], $fileName);
+                if ($result) {
+                    return $result;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    //endregion
+
+    //region Rendering
+
+    /**
+     * Converts TOC entries to HTML
+     * @param $entries
+     * @return string
+     */
+    private function convertEntriesToHTML($entries) {
+        $html = '';
+        foreach($entries as $entry) {
+            if ($entry['src'] == 'index') {
+                continue;
+            }
+
+            $anchor = admin_url('admin.php?page=ilab-docs-'.$this->currentDocs.'&doc-page='.$entry['src']);
+            $html .= "<li><a href='$anchor'>{$entry['title']}</a>";
+            if (isset($entry['children'])) {
+                $html .= '<ul>';
+                $html .= $this->convertEntriesToHTML($entry['children']);
+                $html .= '</ul>';
+            }
+            $html .= "</li>";
+        }
+
+        return $html;
+    }
+
+    /**
      * Renders the breadcrumbs for the current page
      *
      * @return string
      */
-    public function renderBreadcrumbs() {
+    private function renderBreadcrumbs() {
         if (!isset($this->currentConfig->config['toc'])) {
             return '';
         }
@@ -279,7 +307,7 @@ class DocsPlugin {
      *
      * @return string
      */
-    public function renderHeader() {
+    private function renderHeader() {
         $searchText = (isset($_POST['search-text'])) ? $_POST['search-text'] : null;
 
         $result = "<div class='ilab-docs-header".(($this->currentConfig->canSearch) ? ' ilab-docs-has-search' : '')."'>";
@@ -308,7 +336,7 @@ class DocsPlugin {
      *
      * @return string
      */
-    public function renderPage() {
+    private function renderPage() {
         $result = '';
 
         $text = file_get_contents($this->currentPagePath);
@@ -390,37 +418,13 @@ class DocsPlugin {
     }
 
     /**
-     * Returns the TOC entry for the given filename
-     *
-     * @param $entries
-     * @param $fileName
-     * @return bool
-     */
-    private function getTocEntryForFile($entries, $fileName) {
-        foreach($entries as $entry) {
-            if ($entry['src'] == $fileName) {
-                return $entry;
-            }
-
-            if (isset($entry['children'])) {
-                $result = $this->getTocEntryForFile($entry['children'], $fileName);
-                if ($result) {
-                    return $result;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Renders the search results
      *
      * @return string
      * @throws \TeamTNT\TNTSearch\Exceptions\IndexNotFoundException
      * @throws \Exception
      */
-    public function renderSearchResults() {
+    private function renderSearchResults() {
         $sqlite = new \SQLite3($this->currentConfig->dir.'docs.index');
         $res = $sqlite->query("select value from info where key = 'source_dir'")->fetchArray();
         if ($res === false) {
@@ -466,20 +470,9 @@ class DocsPlugin {
     }
 
     /**
-     * Renders the entire page
-     */
-    public function renderMenuPage() {
-        if ($this->currentConfig->canSearch && isset($_POST['search-text'])) {
-            echo $this->renderSearchResults();
-        } else {
-            echo $this->renderPage();
-        }
-    }
-
-    /**
      * Renders the page and returns as an ajax json response
      */
-    public function displayAjaxPage() {
+    private function displayAjaxPage() {
         if ($this->currentConfig->canSearch && isset($_POST['search-text'])) {
             $page = $this->renderSearchResults();
         } else {
@@ -492,10 +485,21 @@ class DocsPlugin {
         die;
     }
 
+    /**
+     * Renders the entire page
+     */
+    public function renderMenuPage() {
+        if ($this->currentConfig->canSearch && isset($_POST['search-text'])) {
+            echo $this->renderSearchResults();
+        } else {
+            echo $this->renderPage();
+        }
+    }
+
     //endregion
 
 
-    //region Menu related
+    //region Admin Menu Bar
 
     /**
      * Builds Admin Bar child entries
@@ -585,6 +589,10 @@ class DocsPlugin {
             $this->buildSingleAdminBarMenu($wp_admin_bar);
         }
     }
+
+    //endregion
+
+    //region Admin Menus
 
     /**
      * Builds a single admin menu
