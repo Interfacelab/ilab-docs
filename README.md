@@ -11,6 +11,17 @@ For examples integrating this documentation plugin with your plugin or theme, ch
 * [Example plugin with documentation](https://github.com/Interfacelab/ilab-docs-example-plugin)
 * [Example theme with documentation](https://github.com/Interfacelab/ilab-docs-example-theme)
 
+## Installation
+
+Install via composer:
+
+```bash
+composer require ilab/ilab-docs
+```
+
+Or, install via the [WordPress plugin repository](https://wordpress.org/plugins/ilab-docs/).
+
+Or, download the zip file from the [releases page](https://github.com/Interfacelab/ilab-docs/releases) and install manually.
 
 ## Writing Documentation
 
