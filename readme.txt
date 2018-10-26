@@ -1,4 +1,4 @@
-=== iLab Docs ===
+=== ILab Docs ===
 Contributors: interfacelab
 Tags: documentation, admin
 Requires at least: 4.4
@@ -7,13 +7,26 @@ License: GPLv3 or later
 Donate link: http://www2.jdrf.org/site/TR?fr_id=6912&pg=personal&px=11429802
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Stable tag: 1.0.0
-Requires PHP: 5.6
+Requires PHP: 7.1
 
-Adds markdown documentation to the WordPress admin.
+Directly integrate markdown based help documentation for your WordPress theme or plugin into the WordPress admin for
+your end users and clients.
 
 == Description ==
 
-Adds markdown documentation to your WordPress admin, enabling you to document your theme for your clients.
+**NOTE**: This plugin requires PHP 7.1x or higher
+
+The ILAB Docs plugin allows you to integrate help documentation for your WordPress theme or plugin directly
+into the WordPress admin.
+
+Documentation is written in Markdown, with special extensions that make writing documentation in markdown easy.  These
+extensions allow linking to other markdown files, linking to admin pages, video embeds, displaying a table of contents
+and other features.  ILab Docs also has integrated search functionality for easily searching your documentation.
+
+For examples integrating this documentation plugin with your plugin or theme, check out these examples:
+
+* [Example plugin with documentation](https://github.com/Interfacelab/ilab-docs-example-plugin)
+* [Example theme with documentation](https://github.com/Interfacelab/ilab-docs-example-theme)
 
 == Screenshots ==
 
