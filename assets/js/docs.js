@@ -1,3 +1,4 @@
+import 'idempotent-babel-polyfill';
 
 import DocsPopup from './Components/DocsPopup';
 

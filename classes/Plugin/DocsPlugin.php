@@ -18,29 +18,74 @@ use TeamTNT\TNTSearch\TNTSearch;
 if (!defined('ABSPATH')) { header('Location: /'); die; }
 
 class DocsPlugin {
-    private $docsURL;
-    private $docsDirectory;
+    private $docsConfig = [];
+
+    private $currentDocs = null;
+    private $currentConfig;
+    private $config = [];
     private $currentPage;
     private $currentPagePath;
-    private $config = [];
-
-    private $canSearch;
-    private $searchIndex;
 
     public function __construct() {
-        $this->docsDirectory = get_template_directory().'/docs/';
-        $this->docsDirectory = apply_filters('ilab-docs-directory', $this->docsDirectory);
+        $docsConfig = [];
 
-        $this->docsURL = get_template_directory_uri().'/docs/';
-        $this->docsURL = apply_filters('ilab-docs-url', $this->docsURL);
+        $themeDocsDirectory = get_template_directory().'/docs/';
+        if (file_exists($themeDocsDirectory)) {
+            $docsConfig['theme'] = [
+                'dir' => $themeDocsDirectory,
+                'url' => get_template_directory_uri().'/docs/'
+            ];
+        }
 
-        $this->searchIndex = $this->docsDirectory.'docs.index';
-        $this->canSearch = (file_exists($this->searchIndex) && extension_loaded('sqlite3'));
+        $docsConfig = apply_filters('ilab-docs-config', $docsConfig);
+        foreach($docsConfig as $key => $config) {
+            $config['dir'] = DIRECTORY_SEPARATOR.trim($config['dir'], DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+            $config['url'] = trim($config['url'], '/').'/';
+            $searchIndex = $config['dir'].'docs.index';
+            if (file_exists($searchIndex)) {
+                $config['search'] = $searchIndex;
+                $config['canSearch'] = extension_loaded('sqlite3');
+            } else {
+                $config['canSearch'] = false;
+            }
+
+            $config['config'] = [];
+            if (file_exists($config['dir'].'config.json')) {
+                $config['config'] = json_decode(file_get_contents($config['dir'].'config.json'), true);
+            }
+
+            $this->docsConfig[sanitize_title($key)] = (object)$config;
+        }
 
         // If no docs directory, bail
-        if (!file_exists($this->docsDirectory)) {
+        if (count($this->docsConfig) == 0) {
             return;
         }
+
+
+        if (isset($_GET['page'])) {
+            if (strpos($_GET['page'], 'ilab-docs-') === 0) {
+                $this->currentDocs = str_replace('ilab-docs-', '', $_GET['page']);
+            }
+        }
+
+        // Wasn't passed in from a menu, see if it's in the get parameters
+        if ($this->currentDocs === null) {
+            // Set the current docset to the first one for now
+            if (isset($_GET['doc-set'])) {
+                $this->currentDocs = $_GET['doc-set'];
+            } else if (isset($_POST['doc-set'])) {
+                $this->currentDocs = $_POST['doc-set'];
+            }
+        }
+
+        // Final check for a doc set
+        if (!isset($this->docsConfig[$this->currentDocs]) || ($this->currentDocs === null)) {
+            $this->currentDocs = array_keys($this->docsConfig)[0];
+        }
+
+        // Load the current doc configuration
+        $this->currentConfig = $this->docsConfig[$this->currentDocs];
 
         // Get the currently requested page
         $this->currentPage = 'index';
@@ -50,16 +95,11 @@ class DocsPlugin {
             $this->currentPage = $_POST['doc-page'];
         };
 
-        $this->currentPagePath = realpath($this->docsDirectory.$this->currentPage.'.md');
+        $this->currentPagePath = realpath($this->currentConfig->dir.$this->currentPage.'.md');
 
         // Make sure the current file exists WITHIN the docs directory and that current page file exists
-        if ((strpos($this->currentPagePath, $this->docsDirectory) !== 0) || !file_exists($this->currentPagePath)) {
+        if ((strpos($this->currentPagePath, $this->currentConfig->dir) !== 0) || !file_exists($this->currentPagePath)) {
             return;
-        }
-
-        $configFile = $this->docsDirectory.'config.json';
-        if (file_exists($configFile)) {
-            $this->config = json_decode(file_get_contents($configFile), true);
         }
 
         add_action('admin_menu', [$this, 'buildMenu']);
@@ -69,13 +109,12 @@ class DocsPlugin {
             wp_enqueue_script('ilab-docs-js', ILAB_DOCS_PUB_JS_URL.'/docs.js');
             wp_enqueue_style('ilab-docs-css', ILAB_DOCS_PUB_CSS_URL . '/docs.css' );
 
-            if (file_exists($this->docsDirectory.'docs.css')) {
-                wp_enqueue_style('ilab-custom-docs-css', $this->docsURL . '/docs.css' );
+            if (file_exists($this->currentConfig->dir.'docs.css')) {
+                wp_enqueue_style('ilab-docs-css-'.$this->currentDocs, $this->currentConfig->url.'/docs.css' );
             }
         });
 
         add_action('wp_ajax_ilab_render_doc_page', [$this,'displayAjaxPage']);
-
     }
 
     //region Rendering
@@ -108,7 +147,7 @@ class DocsPlugin {
                 continue;
             }
 
-            $anchor = admin_url('admin.php?page=ilab-docs-menu&doc-page='.$entry['src']);
+            $anchor = admin_url('admin.php?page=ilab-docs-'.$this->currentDocs.'&doc-page='.$entry['src']);
             $html .= "<li><a href='$anchor'>{$entry['title']}</a>";
             if (isset($entry['children'])) {
                 $html .= '<ul>';
@@ -148,7 +187,7 @@ class DocsPlugin {
     }
 
     private function getTrailForCurrentPage() {
-        $title = isset($this->config['title']) ? $this->config['title'] : 'Documentation';
+        $title = isset($this->currentConfig->config['title']) ? $this->currentConfig->config['title'] : 'Documentation';
 
         $result = [
             [
@@ -162,14 +201,14 @@ class DocsPlugin {
         }
 
         $searchResults = [];
-        $this->searchForCurrentPage($this->config['toc'], $searchResults);
+        $this->searchForCurrentPage($this->currentConfig->config['toc'], $searchResults);
         $searchResults = array_reverse($searchResults);
 
         return array_merge($result, $searchResults);
     }
 
     public function renderBreadcrumbs() {
-        if (!isset($this->config['toc'])) {
+        if (!isset($this->currentConfig->config['toc'])) {
             return '';
         }
 
@@ -180,7 +219,7 @@ class DocsPlugin {
             if ($i == count($trailResults) - 1) {
                 $result .= "<li>{$trailResults[$i]['title']}</li>";
             } else {
-                $result .= "<li><a href='".admin_url('admin.php?page=ilab-docs-menu&doc-page='.$trailResults[$i]['src'])."'>{$trailResults[$i]['title']}</a></li>";
+                $result .= "<li><a href='".admin_url('admin.php?page=ilab-docs-'.$this->currentDocs.'&doc-page='.$trailResults[$i]['src'])."'>{$trailResults[$i]['title']}</a></li>";
             }
         }
         $result .= '</ul></div>';
@@ -191,20 +230,20 @@ class DocsPlugin {
     public function renderHeader() {
         $searchText = (isset($_POST['search-text'])) ? $_POST['search-text'] : null;
 
-        $result = "<div class='ilab-docs-header".(($this->canSearch) ? ' ilab-docs-has-search' : '')."'>";
-        if (isset($this->config['logo'])) {
-            $title = isset($this->config['title']) ? $this->config['title'] : 'Documentation';
-            $logoSrc = get_template_directory_uri().'/'.$this->config['logo']['src'];
-            $logoWidth = $this->config['logo']['width'];
-            $logoHeight = $this->config['logo']['height'];
+        $result = "<div class='ilab-docs-header".(($this->currentConfig->canSearch) ? ' ilab-docs-has-search' : '')."'>";
+        if (isset($this->currentConfig->config['logo'])) {
+            $title = isset($this->currentConfig->config['title']) ? $this->currentConfig->config['title'] : 'Documentation';
+            $logoSrc = $this->currentConfig->url.$this->currentConfig->config['logo']['src'];
+            $logoWidth = $this->currentConfig->config['logo']['width'];
+            $logoHeight = $this->currentConfig->config['logo']['height'];
 
             $result .= "<img src='$logoSrc' width='$logoWidth' height='$logoHeight'><span>$title</span>";
         } else {
             $result .= "";
         }
 
-        if ($this->canSearch) {
-            $result .= "<div class='ilab-docs-search'><form method='POST'><input type='hidden' action='docs-search'><input type='search' class='newtag form-input-tip ui-autocomplete-input' name='search-text' ".(($searchText) ? " value='$searchText'" : "")." placeholder='Search ...'><input type='submit' value='Search' class='button-primary'></form></div>";
+        if ($this->currentConfig->canSearch) {
+            $result .= "<div class='ilab-docs-search'><form method='POST'><input type='hidden' action='docs-search'><input type='hidden' name='doc-set' value='{$this->currentDocs}'><input type='search' class='newtag form-input-tip ui-autocomplete-input' name='search-text' ".(($searchText) ? " value='$searchText'" : "")." placeholder='Search ...'><input type='submit' value='Search' class='button-primary'></form></div>";
         }
 
         $result .= "</div>";
@@ -222,7 +261,7 @@ class DocsPlugin {
             // other doc links
             if (preg_match("/.*\.md/", $url)) {
                 $url = str_replace('.md', '', $url);
-                return admin_url('admin.php?page=ilab-docs-menu')."&doc-page=$url";
+                return admin_url('admin.php?page=ilab-docs-'.$this->currentDocs."&doc-page=$url");
             }
 
             // admin links
@@ -241,7 +280,7 @@ class DocsPlugin {
                     return $url;
                 }
 
-                return $this->docsURL.$url;
+                return $this->currentConfig->url.$url;
             }
 
             return $url;
@@ -267,9 +306,9 @@ class DocsPlugin {
                 }
 
                 if ($tocPage == 'index') {
-                    $entries = $this->config['toc'];
+                    $entries = $this->currentConfig->config['toc'];
                 } else {
-                    $entries = $this->getChildrenEntriesFor($tocPage, $this->config['toc']);
+                    $entries = $this->getChildrenEntriesFor($tocPage, $this->currentConfig->config['toc']);
                 }
 
                 if (!empty($entries) && is_array($entries) && (count($entries) > 0)) {
@@ -327,7 +366,7 @@ class DocsPlugin {
         $entries = [];
         foreach($searchResults as $searchResult) {
             $file = str_replace('.md', '', str_replace($this->docsDirectory, '', $searchResult['path']));
-            $entry = $this->getTocEntryForFile($this->config['toc'], $file);
+            $entry = $this->getTocEntryForFile($this->currentConfig->config['toc'], $file);
             if ($entry) {
                 $entries[] = $entry;
             }
@@ -348,7 +387,7 @@ class DocsPlugin {
     }
 
     public function renderMenuPage() {
-        if ($this->canSearch && isset($_POST['search-text'])) {
+        if ($this->currentConfig->canSearch && isset($_POST['search-text'])) {
             echo $this->renderSearchResults();
         } else {
             echo $this->renderPage();
@@ -356,7 +395,7 @@ class DocsPlugin {
     }
 
     public function displayAjaxPage() {
-        if ($this->canSearch && isset($_POST['search-text'])) {
+        if ($this->currentConfig->canSearch && isset($_POST['search-text'])) {
             $page = $this->renderSearchResults();
         } else {
             $page = $this->renderPage();
@@ -380,7 +419,7 @@ class DocsPlugin {
                 'id' => $entryNodeId,
                 'parent' => $parentID,
                 'title' => $entry['title'],
-                'href' => admin_url('admin.php?page=ilab-docs-menu&doc-page='.$entry['src']),
+                'href' => admin_url('admin.php?page=ilab-docs-'.$this->currentDocs.'&doc-page='.$entry['src']),
                 'meta' => [
                     'class' => 'ilab-docs-link'
                 ]
@@ -392,39 +431,93 @@ class DocsPlugin {
         }
     }
 
-    public function buildAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
-        if (!isset($this->config['toc'])) {
+    private function buildSingleAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
+        if (!isset($this->currentConfig->config['toc'])) {
             return;
         }
 
-        $title = isset($this->config['toolbar']) ? $this->config['toolbar'] : 'Documentation';
-
+        $title = isset($this->currentConfig->config['toolbar']) ? $this->currentConfig->config['toolbar'] : 'Documentation';
 
         $wp_admin_bar->add_menu([
             'id' => 'ilab-docs-bar-menu',
             'title' => '<span class="ab-icon dashicons-editor-help"></span>'.$title
         ]);
 
-        $this->buildAdminBarMenuEntries($wp_admin_bar, 'ilab-docs-bar-menu', $this->config['toc']);
+        $this->buildAdminBarMenuEntries($wp_admin_bar, 'ilab-docs-bar-menu', $this->currentConfig->config['toc']);
     }
 
-    public function buildMenu() {
-        $title = isset($this->config['title']) ? $this->config['title'] : 'Documentation';
-        $menu = isset($this->config['menu']) ? $this->config['menu'] : 'Documentation';
+    private function buildMultiAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
+        $wp_admin_bar->add_menu([
+            'id' => 'ilab-docs-bar-menu',
+            'title' => '<span class="ab-icon dashicons-editor-help"></span>Docs'
+        ]);
+
+        foreach($this->docsConfig as $key => $config) {
+            $entryNodeId = str_replace('/','-', 'ilab-docs-node-'.$key);
+            $wp_admin_bar->add_node([
+                'id' => $entryNodeId,
+                'parent' => 'ilab-docs-bar-menu',
+                'title' => $config->config['toolbar'] ?: $config->config['title'],
+                'href' => admin_url('admin.php?page=ilab-docs-'.$key.'&doc-page=index'),
+                'meta' => [
+                    'class' => 'ilab-docs-link'
+                ]
+            ]);
+        }
+    }
+
+    public function buildAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
+        if (count($this->docsConfig) == 0) {
+            return;
+        }
+
+        if (count($this->docsConfig) > 1) {
+            $this->buildMultiAdminBarMenu($wp_admin_bar);
+        } else {
+            $this->buildSingleAdminBarMenu($wp_admin_bar);
+        }
+    }
+
+    public function buildSingleMenu() {
+        $title = isset($this->currentConfig->config['title']) ? $this->currentConfig->config['title'] : 'Documentation';
+        $menu = isset($this->currentConfig->config['menu']) ? $this->currentConfig->config['menu'] : 'Documentation';
 
         add_menu_page($title, $menu, 'read', 'ilab-docs-menu', [$this,'renderMenuPage'],'dashicons-editor-help');
 
-        if (isset($this->config['toc'])) {
-            foreach($this->config['toc'] as $entry) {
+        if (isset($this->currentConfig->config['toc'])) {
+            foreach($this->currentConfig->config['toc'] as $entry) {
                 if ($entry['src'] == 'index') {
                     continue;
                 }
 
                 add_submenu_page('ilab-docs-menu', $entry['title'], $entry['title'], 'read','ilab-docs-menu&doc-page='.$entry['src'],'__return_null');
             }
-
-
         }
+    }
+
+    public function buildMultiMenu() {
+        $firstKey = array_keys($this->docsConfig)[0];
+
+        add_menu_page('Docs', 'Docs', 'read', 'ilab-docs-'.$firstKey, [$this,'renderMenuPage'],'dashicons-editor-help');
+
+        $first = true;
+        foreach($this->docsConfig as $key => $config) {
+            if ($first) {
+                add_submenu_page('ilab-docs-'.$firstKey, $config->config['title'], $config->config['title'], 'read','ilab-docs-'.$firstKey,[$this,'renderMenuPage']);
+                $first = false;
+            } else {
+                add_submenu_page('ilab-docs-'.$firstKey, $config->config['title'], $config->config['title'], 'read','ilab-docs-'.$key, [$this,'renderMenuPage']);
+            }
+        }
+    }
+
+    public function buildMenu() {
+        if (count($this->docsConfig) > 1) {
+            $this->buildMultiMenu();
+        } else if (count($this->docsConfig) == 1) {
+            $this->buildSingleMenu();
+        }
+
 
     }
 
