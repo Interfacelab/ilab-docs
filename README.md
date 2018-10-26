@@ -2,19 +2,27 @@
 
 The ILAB Docs plugin allows you to integrate help documentation for your WordPress theme or plugin directly into the WordPress admin.
 
-Documentation is written in Markdown, with special extensions that allow linking to other markdown files, linking to admin pages, video embeds, displaying a table of contents and other features.  ILAB Docs also has integrated search functionality.
+Documentation is written in Markdown, with special extensions that allow linking to other markdown files, linking to admin pages, video embeds, displaying a table of contents and other features.  
+
+ILAB Docs also has integrated search functionality.
+
+For examples integrating this documentation plugin with your plugin or theme, check out these examples:
+
+* [Example plugin with documentation](https://github.com/Interfacelab/ilab-docs-example-plugin)
+* [Example theme with documentation](https://github.com/Interfacelab/ilab-docs-example-theme)
 
 
 ##Writing Documentation
 
 ###Documentation Location
-If you are writing documentation for your theme, you can place it in directory called `docs` in the root of your theme and the plugin will find it automatically.
+If you are writing documentation for your theme, you need to place your documentation in directory called `docs` in the root of your theme and the plugin will find it automatically.
 
-Documentation for plugins will have to tell the plugin where to load it's documentation from.  You can do that through the `ilab-docs-config` filter:
+Documentation for plugins, or for a directory other than `docs`, you will have to tell the docs plugin where to load it's documentation from.  You can do that through the `ilab-docs-config` filter:
 
 ```php
 add_filter('ilab-docs-config', function($docsConfig){
 	$docsConfig[] = [
+		'title' => 'My Plugin',
 		'dir' => dirname(__FILE__).'/docs/',
 		'url' => plugin_dir_url( __FILE__ ).'docs/'
 	];
@@ -23,7 +31,7 @@ add_filter('ilab-docs-config', function($docsConfig){
 }, 10000, 1);
 ```
 
-When this filter is run, you will add the absolute path to your documentation and the url for your documentation to the `$docsConfig` array.
+This filter should be added to your plugin's main/entry PHP file or your theme's `functions.php`.
 
 ###Directory Structure
 The basic directory structure for your `docs` folder should look like this:
@@ -43,7 +51,9 @@ The `config.json` holds the configuration and table of contents of your document
 In addition to this, you'll have additional markdown files for each page of documentation you wish to include.
 
 ###Configuration
-Each document set requires a configuration file.  The configuration file is a simple JSON file that provides the title, name of the documentation to display in various menu areas, the logo and the table of contents.  A basic configuration file looks like:
+Each document set requires a configuration file.  The configuration file is a simple JSON file that provides the title, name of the documentation to display in various menu areas, the logo and the table of contents.  
+
+A basic configuration file looks like:
 
 ```json
 {
@@ -97,6 +107,8 @@ This the name of the title when displayed in the WordPress admin toolbar.
 
 #####Standalone
 If you are writing plugin documentation, setting this flag to true will make your plugin documentation a top level menu item instead of being grouped in the *Plugin Docs* admin menus.  You shouldn't do this unless your plugin is a *must use* OR a major plugin with a lot of documentation.
+
+Documentation for themes are always standalone top-level menu items.
 
 ####Table of Contents
 The table of contents is the complete list of all of the pages in your documentation.  Each element has a `title` attribute which is the title to display in the table of contents listing, and a `src` attribute which is the relative path to the markdown file (sans the markdown extension).
