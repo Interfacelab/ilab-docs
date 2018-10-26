@@ -26,21 +26,16 @@ export default class DocsPopup {
             var targetPage = null;
             var targetDocSet = null;
 
-            console.log(anchor);
-
             if (anchor.href.indexOf('?') > 0) {
                 var queryParams = anchor.href.split('?')[1].split('&');
-                console.log(queryParams);
                 queryParams.forEach(function(param){
                     if (param.startsWith('doc-page=')) {
                         var params = param.split('=');
                         targetPage = params[1];
-                        console.log(targetPage);
                     } else if (param.startsWith('page=')) {
                         var params = param.split('=');
                         if (params[1].startsWith('ilab-docs-')) {
                             targetDocSet = params[1].replace('ilab-docs-', '');
-                            console.log(targetDocSet);
                         }
                     }
                 });
@@ -50,7 +45,6 @@ export default class DocsPopup {
                         e.preventDefault();
 
                         this.show(targetDocSet, targetPage, function(docElement){
-                            console.log('page loaded ...');
                             this.hijackLinks('a', docElement);
                         }.bind(this));
 
@@ -118,17 +112,14 @@ export default class DocsPopup {
 
             if (anchor.href.indexOf('?') > 0) {
                 var queryParams = anchor.href.split('?')[1].split('&');
-                console.log(queryParams);
                 queryParams.forEach(function(param){
                     if (param.startsWith('doc-page=')) {
                         var params = param.split('=');
                         targetPage = params[1];
-                        console.log(targetPage);
                     } else if (param.startsWith('page=')) {
                         var params = param.split('=');
                         if (params[1].startsWith('ilab-docs-')) {
                             targetDocSet = params[1].replace('ilab-docs-', '');
-                            console.log(targetDocSet);
                         }
                     }
                 });
@@ -137,10 +128,7 @@ export default class DocsPopup {
                     anchor.addEventListener('click', function(e){
                         e.preventDefault();
 
-                        console.log('hotclick', targetDocSet, targetPage);
-
                         this.loadPage(targetDocSet, targetPage, function(docElement){
-                            console.log('loaded?', docElement);
                             this.hijackLinks('a', docElement);
                         }.bind(this));
 
@@ -170,7 +158,6 @@ export default class DocsPopup {
            e.preventDefault();
 
             jQuery.post(ajaxurl, { "action": "ilab_render_doc_page", "search-text": searchInput.value, "doc-page": "index" }, function(response) {
-                console.log(response);
                 this.helpContainer.innerHTML = response.html;
                 this.hijackLinks('a', this.helpContainer);
                 this.hijackSearch();
