@@ -17,15 +17,31 @@ use TeamTNT\TNTSearch\TNTSearch;
 
 if (!defined('ABSPATH')) { header('Location: /'); die; }
 
+/**
+ * This plugin enables displaying markdown documentation to end users of the WordPress admin.  It supports
+ * multiple docsets, searching, etc.
+ *
+ * @package ILAB\Docs\Plugin
+ */
 class DocsPlugin {
+    /** @var array Configuration data for all of the installed docsets */
     private $docsConfig = [];
 
+    /** @var null|string The current docset  */
     private $currentDocs = null;
+
+    /** @var object|null The current docset configuration */
     private $currentConfig;
-    private $config = [];
+
+    /** @var string|null The current page identifier */
     private $currentPage;
+
+    /** @var string|null The current filesystem path for the current page */
     private $currentPagePath;
 
+    /**
+     * DocsPlugin constructor.
+     */
     public function __construct() {
         $docsConfig = [];
 
@@ -53,6 +69,8 @@ class DocsPlugin {
             if (file_exists($config['dir'].'config.json')) {
                 $config['config'] = json_decode(file_get_contents($config['dir'].'config.json'), true);
             }
+
+            $config['standalone'] = (isset($config['config']['standalone'])) ? $config['config']['standalone'] : false;
 
             $this->docsConfig[sanitize_title($key)] = (object)$config;
         }
@@ -119,6 +137,13 @@ class DocsPlugin {
 
     //region Rendering
 
+    /**
+     * Gets child TOC entries for the current page
+     *
+     * @param $page
+     * @param $entries
+     * @return array|null
+     */
     private function getChildrenEntriesFor($page, $entries) {
         foreach($entries as $entry) {
             if ($entry['src'] == $page) {
@@ -140,6 +165,11 @@ class DocsPlugin {
         return null;
     }
 
+    /**
+     * Converts TOC entries to HTML
+     * @param $entries
+     * @return string
+     */
     private function convertEntriesToHTML($entries) {
         $html = '';
         foreach($entries as $entry) {
@@ -160,6 +190,13 @@ class DocsPlugin {
         return $html;
     }
 
+    /**
+     * Searches the TOC for the current page
+     *
+     * @param $entries
+     * @param $results
+     * @return bool
+     */
     private function searchForCurrentPage($entries, &$results) {
         foreach($entries as $entry) {
             if ($entry['src'] == $this->currentPage) {
@@ -186,6 +223,11 @@ class DocsPlugin {
         return false;
     }
 
+    /**
+     * Returns the breadcrumb trail for the current page
+     *
+     * @return array
+     */
     private function getTrailForCurrentPage() {
         $title = isset($this->currentConfig->config['title']) ? $this->currentConfig->config['title'] : 'Documentation';
 
@@ -207,6 +249,11 @@ class DocsPlugin {
         return array_merge($result, $searchResults);
     }
 
+    /**
+     * Renders the breadcrumbs for the current page
+     *
+     * @return string
+     */
     public function renderBreadcrumbs() {
         if (!isset($this->currentConfig->config['toc'])) {
             return '';
@@ -227,6 +274,11 @@ class DocsPlugin {
         return $result;
     }
 
+    /**
+     * Renders the header
+     *
+     * @return string
+     */
     public function renderHeader() {
         $searchText = (isset($_POST['search-text'])) ? $_POST['search-text'] : null;
 
@@ -251,6 +303,11 @@ class DocsPlugin {
         return $result;
     }
 
+    /**
+     * Renders the page
+     *
+     * @return string
+     */
     public function renderPage() {
         $result = '';
 
@@ -332,6 +389,13 @@ class DocsPlugin {
         return $result;
     }
 
+    /**
+     * Returns the TOC entry for the given filename
+     *
+     * @param $entries
+     * @param $fileName
+     * @return bool
+     */
     private function getTocEntryForFile($entries, $fileName) {
         foreach($entries as $entry) {
             if ($entry['src'] == $fileName) {
@@ -349,15 +413,30 @@ class DocsPlugin {
         return false;
     }
 
+    /**
+     * Renders the search results
+     *
+     * @return string
+     * @throws \TeamTNT\TNTSearch\Exceptions\IndexNotFoundException
+     * @throws \Exception
+     */
     public function renderSearchResults() {
+        $sqlite = new \SQLite3($this->currentConfig->dir.'docs.index');
+        $res = $sqlite->query("select value from info where key = 'source_dir'")->fetchArray();
+        if ($res === false) {
+            return "<div class='ilab-docs-container'><div class='ilab-docs-body'>Search index is corrupt or missing.</div></div>";
+        }
+
+        $searchDir = $res[0];
+
         $searchText = $_POST['search-text'];
 
         $tnt = new TNTSearch();
         $tnt->loadConfig([
             "driver"    => 'filesystem',
-            "location"  => $this->docsDirectory,
+            "location"  => $this->currentConfig->dir,
             "extension" => "md",
-            'storage'   => $this->docsDirectory
+            'storage'   => $this->currentConfig->dir
         ]);
 
         $tnt->selectIndex('docs.index');
@@ -365,7 +444,7 @@ class DocsPlugin {
 
         $entries = [];
         foreach($searchResults as $searchResult) {
-            $file = str_replace('.md', '', str_replace($this->docsDirectory, '', $searchResult['path']));
+            $file = str_replace('.md', '', str_replace($searchDir, '', $searchResult['path']));
             $entry = $this->getTocEntryForFile($this->currentConfig->config['toc'], $file);
             if ($entry) {
                 $entries[] = $entry;
@@ -375,7 +454,7 @@ class DocsPlugin {
         $html = "<h2>Searched for '$searchText' and found ".count($entries)." results.</h2>\n";
         $html .= '<ul class="search-results">';
         foreach($entries as $entry) {
-            $entryURL = admin_url('admin.php?page=ilab-docs-menu&doc-page='.$entry['src']);
+            $entryURL = admin_url('admin.php?page=ilab-docs-'.$this->currentDocs.'&doc-page='.$entry['src']);
             $html .= "<li><a href='$entryURL'>{$entry['title']}</li>";
         }
         $html .= '</ul>';
@@ -386,6 +465,9 @@ class DocsPlugin {
         return $result;
     }
 
+    /**
+     * Renders the entire page
+     */
     public function renderMenuPage() {
         if ($this->currentConfig->canSearch && isset($_POST['search-text'])) {
             echo $this->renderSearchResults();
@@ -394,6 +476,9 @@ class DocsPlugin {
         }
     }
 
+    /**
+     * Renders the page and returns as an ajax json response
+     */
     public function displayAjaxPage() {
         if ($this->currentConfig->canSearch && isset($_POST['search-text'])) {
             $page = $this->renderSearchResults();
@@ -412,25 +497,36 @@ class DocsPlugin {
 
     //region Menu related
 
-    private function buildAdminBarMenuEntries(\WP_Admin_Bar $wp_admin_bar, $parentID, $entries) {
+    /**
+     * Builds Admin Bar child entries
+     *
+     * @param \WP_Admin_Bar $wp_admin_bar
+     * @param $parentID
+     * @param $entries
+     */
+    private function buildAdminBarMenuEntries($docSet, \WP_Admin_Bar $wp_admin_bar, $parentID, $entries) {
         foreach($entries as $entry) {
             $entryNodeId = str_replace('/','-', 'ilab-docs-node-'.$entry['src']);
             $wp_admin_bar->add_node([
                 'id' => $entryNodeId,
                 'parent' => $parentID,
                 'title' => $entry['title'],
-                'href' => admin_url('admin.php?page=ilab-docs-'.$this->currentDocs.'&doc-page='.$entry['src']),
+                'href' => admin_url('admin.php?page=ilab-docs-'.$docSet.'&doc-page='.$entry['src']),
                 'meta' => [
                     'class' => 'ilab-docs-link'
                 ]
             ]);
 
             if (isset($entry['children'])) {
-                $this->buildAdminBarMenuEntries($wp_admin_bar, $entryNodeId, $entry['children']);
+                $this->buildAdminBarMenuEntries($docSet, $wp_admin_bar, $entryNodeId, $entry['children']);
             }
         }
     }
 
+    /**
+     * Builds the admin bar for a single docset
+     * @param \WP_Admin_Bar $wp_admin_bar
+     */
     private function buildSingleAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
         if (!isset($this->currentConfig->config['toc'])) {
             return;
@@ -443,9 +539,13 @@ class DocsPlugin {
             'title' => '<span class="ab-icon dashicons-editor-help"></span>'.$title
         ]);
 
-        $this->buildAdminBarMenuEntries($wp_admin_bar, 'ilab-docs-bar-menu', $this->currentConfig->config['toc']);
+        $this->buildAdminBarMenuEntries($this->currentDocs, $wp_admin_bar, 'ilab-docs-bar-menu', $this->currentConfig->config['toc']);
     }
 
+    /**
+     * Builds the admin bar for multiple docsets
+     * @param \WP_Admin_Bar $wp_admin_bar
+     */
     private function buildMultiAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
         $wp_admin_bar->add_menu([
             'id' => 'ilab-docs-bar-menu',
@@ -463,9 +563,17 @@ class DocsPlugin {
                     'class' => 'ilab-docs-link'
                 ]
             ]);
+
+            if (isset($config->config['toc'])) {
+                $this->buildAdminBarMenuEntries($key, $wp_admin_bar, $entryNodeId, $config->config['toc']);
+            }
         }
     }
 
+    /**
+     * Builds the admin bar
+     * @param \WP_Admin_Bar $wp_admin_bar
+     */
     public function buildAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
         if (count($this->docsConfig) == 0) {
             return;
@@ -478,30 +586,37 @@ class DocsPlugin {
         }
     }
 
-    public function buildSingleMenu() {
-        $title = isset($this->currentConfig->config['title']) ? $this->currentConfig->config['title'] : 'Documentation';
-        $menu = isset($this->currentConfig->config['menu']) ? $this->currentConfig->config['menu'] : 'Documentation';
+    /**
+     * Builds a single admin menu
+     */
+    public function buildSingleMenu($key, $config) {
+        $title = isset($config->config['title']) ? $config->config['title'] : 'Documentation';
+        $menu = isset($config->config['menu']) ? $config->config['menu'] : 'Documentation';
+        $slug = 'ilab-docs-'.$key;
 
-        add_menu_page($title, $menu, 'read', 'ilab-docs-menu', [$this,'renderMenuPage'],'dashicons-editor-help');
+        add_menu_page($title, $menu, 'read', $slug, [$this,'renderMenuPage'],'dashicons-editor-help');
 
-        if (isset($this->currentConfig->config['toc'])) {
-            foreach($this->currentConfig->config['toc'] as $entry) {
+        if (isset($config->config['toc'])) {
+            foreach($config->config['toc'] as $entry) {
                 if ($entry['src'] == 'index') {
                     continue;
                 }
 
-                add_submenu_page('ilab-docs-menu', $entry['title'], $entry['title'], 'read','ilab-docs-menu&doc-page='.$entry['src'],'__return_null');
+                add_submenu_page($slug, $entry['title'], $entry['title'], 'read',$slug.'&doc-page='.$entry['src'],[$this,'renderMenuPage']);
             }
         }
     }
 
-    public function buildMultiMenu() {
-        $firstKey = array_keys($this->docsConfig)[0];
+    /**
+     * Builds admin menu when there are multiple docsets
+     */
+    public function buildPluginsMenu($configs) {
+        $firstKey = array_keys($configs)[0];
 
-        add_menu_page('Docs', 'Docs', 'read', 'ilab-docs-'.$firstKey, [$this,'renderMenuPage'],'dashicons-editor-help');
+        add_menu_page('Plugin Docs', 'Plugin Docs', 'read', 'ilab-docs-'.$firstKey, [$this,'renderMenuPage'],'dashicons-editor-help');
 
         $first = true;
-        foreach($this->docsConfig as $key => $config) {
+        foreach($configs as $key => $config) {
             if ($first) {
                 add_submenu_page('ilab-docs-'.$firstKey, $config->config['title'], $config->config['title'], 'read','ilab-docs-'.$firstKey,[$this,'renderMenuPage']);
                 $first = false;
@@ -511,14 +626,38 @@ class DocsPlugin {
         }
     }
 
+    /**
+     * Builds the admin menu
+     */
     public function buildMenu() {
-        if (count($this->docsConfig) > 1) {
-            $this->buildMultiMenu();
-        } else if (count($this->docsConfig) == 1) {
-            $this->buildSingleMenu();
+        $menusToBuild = [];
+        foreach($this->docsConfig as $key => $config) {
+            if (($key == 'theme') || $config->standalone) {
+                $menusToBuild[$key] = $config;
+            } else {
+                if (!isset($menusToBuild['plugins'])) {
+                    $menusToBuild['plugins'] = [];
+                }
+
+                $menusToBuild['plugins'][$key] = $config;
+            }
         }
 
+        foreach($menusToBuild as $key => $config) {
+            if ($key == 'plugins') {
+                continue;
+            }
 
+            $this->buildSingleMenu($key, $config);
+        }
+
+        if (isset($menusToBuild['plugins'])) {
+            if (count($menusToBuild['plugins']) == 1) {
+                $this->buildSingleMenu(array_keys($menusToBuild['plugins'])[0], array_values($menusToBuild['plugins'])[0]);
+            } else {
+                $this->buildPluginsMenu($menusToBuild['plugins']);
+            }
+        }
     }
 
     //endregion

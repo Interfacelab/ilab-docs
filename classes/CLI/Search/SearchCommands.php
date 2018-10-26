@@ -31,8 +31,23 @@ class SearchCommands extends Command {
      * @param $assoc_args
      */
     public function index($args, $assoc_args) {
-        $docsDirectory = get_template_directory().'/docs/';
-        $docsDirectory = apply_filters('ilab-docs-directory', $docsDirectory);
+        $docsDirectory = getcwd().DIRECTORY_SEPARATOR;
+
+        // Make sure the index file exists
+        if (!file_exists($docsDirectory.'index.md')) {
+            Command::Error('Missing index.md file.  This command should be run from your docs directory.');
+            return;
+        }
+
+        // Make sure the config exists
+        if (!file_exists($docsDirectory.'config.json')) {
+            Command::Error('Missing config.json file.  This command should be run from your docs directory.');
+            return;
+        }
+
+        if (file_exists($docsDirectory.'docs.index')) {
+            unlink($docsDirectory.'docs.index');
+        }
 
         $tnt = new TNTSearch();
         $tnt->loadConfig([
@@ -44,10 +59,14 @@ class SearchCommands extends Command {
 
         $indexer = $tnt->createIndex('docs.index');
         $indexer->run();
+
+        $sqlite = new \SQLite3($docsDirectory.DIRECTORY_SEPARATOR.'docs.index');
+        $sqlite->query("INSERT INTO info (key, value) VALUES ('source_dir', '$docsDirectory')");
+        $sqlite->close();
     }
 
     public static function Register() {
-        \WP_CLI::add_command('docs-search', __CLASS__);
+        \WP_CLI::add_command('docs', __CLASS__);
     }
 
 }
