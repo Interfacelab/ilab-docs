@@ -323,7 +323,7 @@ class DocsPlugin {
         }
 
         if ($this->currentConfig->canSearch) {
-            $result .= "<div class='ilab-docs-search'><form method='POST'><input type='hidden' action='docs-search'><input type='hidden' name='doc-set' value='{$this->currentDocs}'><input type='search' class='newtag form-input-tip ui-autocomplete-input' name='search-text' ".(($searchText) ? " value='$searchText'" : "")." placeholder='Search ...'><input type='submit' value='Search' class='button-primary'></form></div>";
+            $result .= "<div class='ilab-docs-search'><form method='POST'><input type='hidden' name='action' value='docs-search'><input type='hidden' name='doc-set' value='{$this->currentDocs}'><input type='search' class='newtag form-input-tip ui-autocomplete-input' name='search-text' ".(($searchText) ? " value='$searchText'" : "")." placeholder='Search ...'><input type='submit' value='Search' class='button-primary'></form></div>";
         }
 
         $result .= "</div>";
@@ -510,7 +510,7 @@ class DocsPlugin {
      */
     private function buildAdminBarMenuEntries($docSet, \WP_Admin_Bar $wp_admin_bar, $parentID, $entries) {
         foreach($entries as $entry) {
-            $entryNodeId = str_replace('/','-', 'ilab-docs-node-'.$entry['src']);
+            $entryNodeId = str_replace('/','-', 'ilab-docs-node-'.$docSet.'-'.$entry['src']);
             $wp_admin_bar->add_node([
                 'id' => $entryNodeId,
                 'parent' => $parentID,
@@ -529,34 +529,34 @@ class DocsPlugin {
 
     /**
      * Builds the admin bar for a single docset
+     * @param $key
+     * @param $config
      * @param \WP_Admin_Bar $wp_admin_bar
      */
-    private function buildSingleAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
-        if (!isset($this->currentConfig->config['toc'])) {
-            return;
-        }
-
-        $title = isset($this->currentConfig->config['toolbar']) ? $this->currentConfig->config['toolbar'] : 'Documentation';
+    private function buildSingleAdminBarMenu($key, $config, \WP_Admin_Bar $wp_admin_bar) {
+        $title = isset($config->config['toolbar']) ? $config->config['toolbar'] : $config->config['title'];
+        $slug = 'ilab-docs-bar-'.$key;
 
         $wp_admin_bar->add_menu([
-            'id' => 'ilab-docs-bar-menu',
+            'id' => $slug,
             'title' => '<span class="ab-icon dashicons-editor-help"></span>'.$title
         ]);
 
-        $this->buildAdminBarMenuEntries($this->currentDocs, $wp_admin_bar, 'ilab-docs-bar-menu', $this->currentConfig->config['toc']);
+        $this->buildAdminBarMenuEntries($key, $wp_admin_bar, $slug, $config->config['toc']);
     }
 
     /**
      * Builds the admin bar for multiple docsets
+     * @param $configs
      * @param \WP_Admin_Bar $wp_admin_bar
      */
-    private function buildMultiAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
+    private function buildPluginsAdminBarMenu($configs, \WP_Admin_Bar $wp_admin_bar) {
         $wp_admin_bar->add_menu([
             'id' => 'ilab-docs-bar-menu',
-            'title' => '<span class="ab-icon dashicons-editor-help"></span>Docs'
+            'title' => '<span class="ab-icon dashicons-editor-help"></span>Plugin Docs'
         ]);
 
-        foreach($this->docsConfig as $key => $config) {
+        foreach($configs as $key => $config) {
             $entryNodeId = str_replace('/','-', 'ilab-docs-node-'.$key);
             $wp_admin_bar->add_node([
                 'id' => $entryNodeId,
@@ -579,14 +579,33 @@ class DocsPlugin {
      * @param \WP_Admin_Bar $wp_admin_bar
      */
     public function buildAdminBarMenu(\WP_Admin_Bar $wp_admin_bar) {
-        if (count($this->docsConfig) == 0) {
-            return;
+        $menusToBuild = [];
+        foreach($this->docsConfig as $key => $config) {
+            if (($key == 'theme') || $config->standalone) {
+                $menusToBuild[$key] = $config;
+            } else {
+                if (!isset($menusToBuild['plugins'])) {
+                    $menusToBuild['plugins'] = [];
+                }
+
+                $menusToBuild['plugins'][$key] = $config;
+            }
         }
 
-        if (count($this->docsConfig) > 1) {
-            $this->buildMultiAdminBarMenu($wp_admin_bar);
-        } else {
-            $this->buildSingleAdminBarMenu($wp_admin_bar);
+        foreach($menusToBuild as $key => $config) {
+            if ($key == 'plugins') {
+                continue;
+            }
+
+            $this->buildSingleAdminBarMenu($key, $config, $wp_admin_bar);
+        }
+
+        if (isset($menusToBuild['plugins'])) {
+            if (count($menusToBuild['plugins']) == 1) {
+                $this->buildSingleAdminBarMenu(array_keys($menusToBuild['plugins'])[0], array_values($menusToBuild['plugins'])[0], $wp_admin_bar);
+            } else {
+                $this->buildPluginsAdminBarMenu($menusToBuild['plugins'], $wp_admin_bar);
+            }
         }
     }
 
@@ -596,6 +615,8 @@ class DocsPlugin {
 
     /**
      * Builds a single admin menu
+     * @param $key
+     * @param $config
      */
     public function buildSingleMenu($key, $config) {
         $title = isset($config->config['title']) ? $config->config['title'] : 'Documentation';
