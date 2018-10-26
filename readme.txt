@@ -28,11 +28,6 @@ For examples integrating this documentation plugin with your plugin or theme, ch
 * [Example plugin with documentation](https://github.com/Interfacelab/ilab-docs-example-plugin)
 * [Example theme with documentation](https://github.com/Interfacelab/ilab-docs-example-theme)
 
-== Screenshots ==
-
-1. Easy image cropping for all croppable image sizes defined in your theme.
-2. Make adjustments to your images like saturation, vibrancy, contrast when using Imgix.
-
 == Changelog ==
 
 = 1.0.0 =
