@@ -13,6 +13,8 @@
 namespace ILAB\Docs\CLI\Search;
 
 use ILAB\Docs\CLI\Command;
+use ILAB\Docs\Markdown\DocsMarkdownExtra;
+use Masterminds\HTML5;
 use TeamTNT\TNTSearch\TNTSearch;
 
 if (!defined('ABSPATH')) { header('Location: /'); die; }
@@ -23,10 +25,32 @@ if (!defined('ABSPATH')) { header('Location: /'); die; }
  */
 class SearchCommands extends Command {
     private function extractTitle($markdownFile) {
+        $text = file_get_contents($markdownFile);
+        $parser = new DocsMarkdownExtra();
+        $html = $parser->transform($text);
+
+        $html5 = new HTML5();
+        $dom = $html5->loadHTML($html);
+
+        $headerLevel = 1;
+        while(true) {
+            $hTags = $dom->getElementsByTagName('h'.$headerLevel);
+            if ($hTags->count() == 0) {
+                $headerLevel++;
+                if ($headerLevel == 5) {
+                    return null;
+                }
+            } else {
+                $node = $hTags->item(0);
+                return $node->textContent;
+            }
+        }
+
+
         return null;
     }
 
-    private function structureToTOC($docsDirectory, $structure, &$toc) {
+    private function structureToTOC($parentPath = '', $docsDirectory, $structure, &$toc) {
         $files = [];
         $children = [];
         foreach($structure as $key => $value) {
@@ -42,12 +66,12 @@ class SearchCommands extends Command {
             $src = str_replace('.md', '', $file);
             $entry = [
                 'title' => $title,
-                'src' => $src
+                'src' => $parentPath.$src
             ];
 
             if (isset($children[$src])) {
                 $entry['children'] = [];
-                $this->structureToTOC($docsDirectory.$src.DIRECTORY_SEPARATOR, $children[$src], $entry['children']);
+                $this->structureToTOC($parentPath.$src.DIRECTORY_SEPARATOR, $docsDirectory.$src.DIRECTORY_SEPARATOR, $children[$src], $entry['children']);
             }
 
             $toc[] = (object)$entry;
@@ -151,10 +175,12 @@ class SearchCommands extends Command {
         }
 
         $toc = [];
-        $this->structureToTOC($docsDirectory, $structure, $toc);
+        $this->structureToTOC('', $docsDirectory, $structure, $toc);
 
-        print_r($toc);
+        $config['toc'] = $toc;
+        file_put_contents($docsDirectory.'config.json', json_encode($config, JSON_PRETTY_PRINT));
 
+        Command::Info("TOC has been updated.  Make sure it is in the order you want it in.", true);
 
     }
 
