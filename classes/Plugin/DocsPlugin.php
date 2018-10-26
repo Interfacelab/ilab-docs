@@ -472,7 +472,7 @@ class DocsPlugin {
     /**
      * Renders the page and returns as an ajax json response
      */
-    private function displayAjaxPage() {
+    public function displayAjaxPage() {
         if ($this->currentConfig->canSearch && isset($_POST['search-text'])) {
             $page = $this->renderSearchResults();
         } else {
