@@ -36,7 +36,7 @@ This filter should be added to your plugin's main/entry PHP file or your theme's
 ### Directory Structure
 The basic directory structure for your `docs` folder should look like this:
 
-```
+```bash
 images/
 config.json
 index.md
@@ -128,7 +128,7 @@ The ILab Docs plugin extends markdown in a few ways to facilitate writing cross-
 #### Linking
 You can link to other pages of your documentation using standard markdown links:
 
-```
+```markdown
 [Other Documentation](other-documentation.md)
 ```
 
@@ -140,14 +140,14 @@ These links are **always** relative to your docs directory.
 #### Admin Links
 Sometimes you will want to link to some part of the WordPress admin.  You can do that using an `admin:` prefix like so:
 
-```
+```markdown
 The menus on the site are editable via WordPress's built-in [menu editor](admin:nav-menus.php).
 ```
 
 #### Local Images
 Because your documentation is being displayed on pages that aren't directly related to where they are stored, regular markdown images won't work.  Instead, to include images that are relative to your documents directory, you would simply write it without a forward slash:
 
-```
+```markdown
 ![Image Name](images/image.png)
 ```
 
@@ -156,7 +156,7 @@ The plugin will automatically map this the image in your `images/` directory reg
 #### Video Embeds
 For embedding video content, use the `@` symbol like so:
 
-```
+```markdown
 @[Video Name](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
 ```
 
@@ -165,7 +165,7 @@ Currently, videos from youtube, vimeo and dailymotion are supported.
 #### Table Header Styles
 You can specify CSS classes for table headers using `{}`:
 
-```
+```markdown
 #### Content Properties
 {callout} | Property{property} | Description{description}
 ----------|--------------------|-------------------------
@@ -199,7 +199,7 @@ The css is included in the `docs.css` file in your `docs` directory.
 #### Table of Contents
 To display the table of contents in your documentation, simply use `@toc()`:
 
-```
+```markdown
 Table of Contents
 -----------------
 @toc()
