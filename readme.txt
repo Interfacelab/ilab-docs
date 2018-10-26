@@ -6,7 +6,7 @@ Tested up to: 4.9.8
 License: GPLv3 or later
 Donate link: http://www2.jdrf.org/site/TR?fr_id=6912&pg=personal&px=11429802
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 Requires PHP: 7.1
 
 Directly integrate markdown based help documentation for your WordPress theme or plugin into the WordPress admin for
@@ -29,6 +29,9 @@ For examples integrating this documentation plugin with your plugin or theme, ch
 * [Example theme with documentation](https://github.com/Interfacelab/ilab-docs-example-theme)
 
 == Changelog ==
+
+= 1.0.1 =
+* Updated README
 
 = 1.0.0 =
 * First release
