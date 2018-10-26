@@ -1,8 +1,9 @@
 {
     "name": "ilab/ilab-docs",
-    "description": "Adds markdown documentation for your theme to the WordPress admin.",
+    "description": "Adds markdown documentation for your theme or plugin to the WordPress admin.",
     "type": "wordpress-plugin",
     "license": "LGPL-3.0-or-later",
+    "keywords": ["documentation", "admin", "markdown", "docs"],
     "authors": [
         {
             "name": "Jon Gilkison",

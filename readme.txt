@@ -1,6 +1,6 @@
 === ILab Docs ===
 Contributors: interfacelab
-Tags: documentation, admin
+Tags: documentation, admin, markdown
 Requires at least: 4.4
 Tested up to: 4.9.8
 License: GPLv3 or later
