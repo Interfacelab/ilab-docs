@@ -1,10 +1,10 @@
 <?php
 /*
-Plugin Name: WP Docs
+Plugin Name: WP Help Docs
 Plugin URI: https://github.com/Interfacelab/ilab-docs
 Description: Directly integrate markdown based help documentation for your WordPress theme or plugin into the WordPress admin for your end users and clients.
 Author: interfacelab
-Version: 1.0.1
+Version: 1.0.3
 Author URI: http://interfacelab.io
 */
 

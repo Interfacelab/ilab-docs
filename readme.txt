@@ -1,12 +1,12 @@
-=== WP Docs ===
+=== WP Help Docs ===
 Contributors: interfacelab
-Tags: documentation, admin, markdown
+Tags: documentation, admin, markdown, help, docs
 Requires at least: 4.4
 Tested up to: 4.9.8
 License: GPLv3 or later
 Donate link: http://www2.jdrf.org/site/TR?fr_id=6912&pg=personal&px=11429802
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 Requires PHP: 7.1
 
 Directly integrate markdown based help documentation for your WordPress theme or plugin into the WordPress admin for
@@ -36,6 +36,9 @@ For examples integrating this documentation plugin with your plugin or theme, ch
 4. Integrates with the WordPress Admin Bar.
 
 == Changelog ==
+
+= 1.0.3 =
+* Misc. fixes
 
 = 1.0.2 =
 * Initial version released on WordPress plugin repository.
