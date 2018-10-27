@@ -1,10 +1,10 @@
-# ILAB Docs for WordPress
+# WP Docs
 
-The ILAB Docs plugin allows you to integrate help documentation for your WordPress theme or plugin directly into the WordPress admin.
+The WP Docs plugin allows you to integrate help documentation for your WordPress theme or plugin directly into the WordPress admin.
 
 Documentation is written in Markdown, with special extensions that allow linking to other markdown files, linking to admin pages, video embeds, displaying a table of contents and other features.  
 
-ILAB Docs also has integrated search functionality.
+WP Docs also has integrated search functionality.
 
 For examples integrating this documentation plugin with your plugin or theme, check out these examples:
 
@@ -134,7 +134,7 @@ This will parse each markdown file in your documentation directory, and any subd
 
 
 ### Markdown Extensions
-The ILab Docs plugin extends markdown in a few ways to facilitate writing cross-referencing documentation.
+The WP Docs plugin extends markdown in a few ways to facilitate writing cross-referencing documentation.
 
 #### Linking
 You can link to other pages of your documentation using standard markdown links:
@@ -219,7 +219,7 @@ Table of Contents
 By default the `@toc()` will only include the the children toc entries at the current level of the documentation using the function.  If you want to include the entire table of contents for all of the documentation you would use: `@toc(index)`.
 
 ### Search
-ILab Docs supports documentation search through the `teamtnt/tntsearch` package.  But in order to enable search, you'll first have to generate a search index.  You can do this from the command line using **wp-cli**.  Open up a terminal and change to your documentation directory.  Type the following:
+WP Docs supports documentation search through the `teamtnt/tntsearch` package.  But in order to enable search, you'll first have to generate a search index.  You can do this from the command line using **wp-cli**.  Open up a terminal and change to your documentation directory.  Type the following:
 
 ```bash
 wp docs index
